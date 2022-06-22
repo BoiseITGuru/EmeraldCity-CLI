@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"os/exec"
 	"syscall"
+	"time"
 
-	// "github.com/bjartek/overflow/overflow"
+	"github.com/bjartek/overflow/overflow"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -41,11 +42,11 @@ func startEmulator(conn *websocket.Conn) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	scanner := bufio.NewScanner(cmdReader)
+	emulatorLogStream := bufio.NewScanner(cmdReader)
 	go func() {
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-			if err := conn.WriteMessage(1, []byte(scanner.Text())); err != nil {
+		for emulatorLogStream.Scan() {
+			fmt.Println(emulatorLogStream.Text())
+			if err := conn.WriteMessage(1, []byte(emulatorLogStream.Text())); err != nil {
 				log.Println(err)
 				return
 			}
@@ -55,6 +56,24 @@ func startEmulator(conn *websocket.Conn) {
 	if err := cliCmd.Start(); err != nil {
 		log.Fatal(err)
 	}
+
+	// quick hack to make sure emulator is running first
+	time.Sleep(3 * time.Second)
+
+	g := overflow.NewOverflowEmulator().Start()
+
+	overflowLogStream := bufio.NewScanner(g.EventFetcher().GoWithTheFlow.Log)
+	go func() {
+		for overflowLogStream.Scan() {
+			fmt.Println(overflowLogStream.Text())
+			if err := conn.WriteMessage(1, []byte(overflowLogStream.Text())); err != nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+
+	fmt.Println(g.State.Accounts())
 }
 
 func stopEmulator() {
