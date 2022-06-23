@@ -1,22 +1,28 @@
 /*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
+Copyright © 2022 BoiseITGuru.find @Emerald City DAO
 
 */
 package cmd
 
 import (
-	"bufio"
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
 
 	"github.com/bjartek/overflow/overflow"
+	"github.com/go-logfmt/logfmt"
 	"github.com/gorilla/websocket"
+	logrus "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+//go:embed embed_files/flow.json
+var flowConfig []byte
 
 // emulatorCmd represents the emulator command
 var emulatorCmd = &cobra.Command{
@@ -29,55 +35,112 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkFlowConfig()
 		setupRoutes()
 		fmt.Println("Now listening for connections to OurBetterPlayground on http://localhost:5050")
 		log.Fatal(http.ListenAndServe(":5050", nil))
 	},
 }
 
-var cliCmd = exec.Command("flow", "emulator", "--contracts")
+var cliCmd *exec.Cmd
+var tempFlowConfig string
+
+// var o *overflow.Overflow
+
+type jsonResponse struct {
+	ResponseType string       `json:"responseType"`
+	Data         logStructure `json:"data"`
+}
+
+type logStructure struct {
+	Time  string `json:"time"`
+	Level string `json:"level"`
+	Msg   string `json:"msg"`
+}
+
+func checkFlowConfig() {
+	if _, e := os.Stat("flow.json"); os.IsNotExist(e) {
+		tempConfig, err := os.CreateTemp("", "flow-*.json")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if _, err := tempConfig.Write(flowConfig); err != nil {
+			log.Fatal(err)
+		}
+
+		tempConfig.Close()
+
+		tempFlowConfig = tempConfig.Name()
+		cliCmd = exec.Command("flow", "emulator", "--config-path", tempConfig.Name(), "--contracts")
+	} else {
+		cliCmd = exec.Command("flow", "emulator", "--contracts")
+	}
+}
 
 func startEmulator(conn *websocket.Conn) {
 	cmdReader, err := cliCmd.StdoutPipe()
 	if err != nil {
-		log.Fatal(err)
+		logrus.Error(err)
 	}
-	emulatorLogStream := bufio.NewScanner(cmdReader)
+	emulatorLogStream := logfmt.NewDecoder(cmdReader)
 	go func() {
-		for emulatorLogStream.Scan() {
-			fmt.Println(emulatorLogStream.Text())
-			if err := conn.WriteMessage(1, []byte(emulatorLogStream.Text())); err != nil {
-				log.Println(err)
-				return
+		for emulatorLogStream.ScanRecord() {
+			var time string
+			var level string
+			var msg string
+			var extra string
+
+			for emulatorLogStream.ScanKeyval() {
+				switch string(emulatorLogStream.Key()) {
+				case "time":
+					time = string(emulatorLogStream.Value())
+				case "level":
+					level = string(emulatorLogStream.Value())
+				case "msg":
+					msg = string(emulatorLogStream.Value())
+				default:
+					extra = string(emulatorLogStream.Key()) + " " + string(emulatorLogStream.Value())
+				}
 			}
+			if emulatorLogStream.Err() != nil {
+				panic(emulatorLogStream.Err())
+			}
+
+			emulatorLog := jsonResponse{
+				ResponseType: "emulator-output",
+				Data: logStructure{
+					Time:  time,
+					Level: level,
+					Msg:   msg + ": " + extra,
+				},
+			}
+
+			logrus.Info(msg + ": " + extra)
+			conn.WriteJSON(emulatorLog)
 		}
 	}()
 
 	if err := cliCmd.Start(); err != nil {
-		log.Fatal(err)
+		logrus.Error(err)
 	}
 
 	// quick hack to make sure emulator is running first
 	time.Sleep(3 * time.Second)
 
-	g := overflow.NewOverflowEmulator().Start()
+	var overflowConfig *overflow.OverflowBuilder
 
-	overflowLogStream := bufio.NewScanner(g.EventFetcher().GoWithTheFlow.Log)
-	go func() {
-		for overflowLogStream.Scan() {
-			fmt.Println(overflowLogStream.Text())
-			if err := conn.WriteMessage(1, []byte(overflowLogStream.Text())); err != nil {
-				log.Println(err)
-				return
-			}
-		}
-	}()
+	if tempFlowConfig != "" {
+		overflowConfig = overflow.NewOverflowEmulator().Config(tempFlowConfig)
+	} else {
+		overflowConfig = overflow.NewOverflowEmulator()
+	}
 
-	fmt.Println(g.State.Accounts())
+	overflowConfig.Start()
 }
 
 func stopEmulator() {
-	cliCmd.Process.Signal(syscall.SIGTERM)
+	cliCmd.Process.Signal(syscall.SIGINT)
 }
 
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -93,8 +156,17 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	log.Println("Playground Connected")
 	log.Println("Starting Emulator")
 	startEmulator(ws)
-	err = ws.WriteMessage(1, []byte("Emulator started successfully"))
-	if err != nil {
+
+	formattedResponse := jsonResponse{
+		ResponseType: "emulator-status",
+		Data: logStructure{
+			Time:  "",
+			Level: "",
+			Msg:   "started",
+		},
+	}
+
+	if err = ws.WriteJSON(formattedResponse); err != nil {
 		log.Println(err)
 	}
 
@@ -139,7 +211,7 @@ func setupRoutes() {
 
 func init() {
 	rootCmd.AddCommand(emulatorCmd)
-
+	logrus.SetOutput(os.Stdout)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
