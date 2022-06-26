@@ -15,7 +15,7 @@ require (
 	github.com/improbable-eng/grpc-web v0.12.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/onflow/cadence v0.24.4
-	github.com/onflow/flow-go v0.26.3
+	github.com/onflow/flow-go v0.26.12
 	github.com/onflow/flow-go-sdk v0.26.3
 	github.com/onflow/flow-go/crypto v0.24.3
 	github.com/onflow/flow-nft/lib/go/contracts v0.0.0-20220606143647-47126d1009e2
@@ -44,7 +44,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bjartek/overflow v0.0.0-20220621004329-d579051f21f8 // indirect
+	github.com/bjartek/overflow v0.0.0-20220625182952-d42d54fb53b4 // indirect
 	github.com/boiseitguru/fcl-dev-wallet v0.4.5-0.20220625183549-31e07034c802 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/bwmarrin/discordgo v0.23.2 // indirect
@@ -109,9 +109,10 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onflow/atree v0.3.1-0.20220531231935-525fbc26f40a // indirect
 	github.com/onflow/fcl-dev-wallet v0.4.4 // indirect
-	github.com/onflow/flow-cli v0.36.1 // indirect
+	github.com/onflow/flow-cli v0.37.0 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/contracts v0.11.2-0.20220513155751-c4c1f8d59f83 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/templates v0.11.2-0.20220513155751-c4c1f8d59f83 // indirect
+	github.com/onflow/flow-emulator v0.33.2 // indirect
 	github.com/onflow/flow-ft/lib/go/contracts v0.5.0 // indirect
 	github.com/onflow/sdks v0.4.4 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
