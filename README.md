@@ -6,11 +6,13 @@ The EmeraldCity-CLI project was developed to allow the [Emerald City Playground]
 
 ## Challenges
 
-The ultimate goal is to utilize [Overflow](https://github.com/bjartek/overflow) to start and manage a Flow Emulator. Currently however, there is an issue with with the emulator Overflow creates that does not expose the needed ports for the gRPC, REST API, and admin servers. To get around this you will need to temporarily have the FLow CLI installed as we use this to start the emulator before activating Overflow to allow the Emeralid City PLayground to manage it over WebSockets.
+Originally the plan was to utilize [Overflow](https://github.com/bjartek/overflow) to start and manage a Flow Emulator. However, as development procedeed and the other uses cases of the CLI started becoming clear it was decided to directly to import a slightly customized version of the [Flow Emulator](https://github.com/onflow/flow-emulator) that brings the [graceland](https://github.com/psiemens/graceland) multi-routine mangement forward into the startup arguments, also allowing for us to pass the [flow-dev-wallet](https://github.com/BoiseITGuru/fcl-dev-wallet/tree/dev-full-accounts) into the emulator startup routine. The flow-dev-wallet first needed to be modified to support graceland then the accounts functions had to be re-written to use actuall accounts. It turns out the dev-wallet does not create any addtional accounts, it just uses a special contacts to create alias accounts for the service account. All functions in ```src/accounts.ts``` of the dev-wallet are being re-written to use an API running alongside the dev-wallet, the API will utlize Overflow/flow-do-sdk to provide a more realistic dev-wallet
 
 ## Current Status
 
 The playground and CLI are still undergoing heavy development, the CLI is written in GO and requires manual compiling still. Once we have finished development it will be available as an NPM package. Currently, the CLI connects to the playground and starts the emulators as well as executes scripts.
+
+The dev-wallet modification should be done shortly once that is completed we can natively use FCL for all interactions with the playground OR **any other project!** the changes to the emulator and dev-wallet are fully backward compatible with the Flow CLI allowing for use in any project with a single command.
 
 ## How to use the EmeraldCity-CLI
 
