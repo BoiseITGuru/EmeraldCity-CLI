@@ -1,20 +1,7 @@
 /*
- * Flow Emulator
- *
- * Copyright 2019-2022 Dapper Labs, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+Copyright © 2022 BoiseITGuru.find @Emerald City DAO
+
+*/
 
 package cmdcli
 
@@ -27,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bjartek/overflow/overflow"
 	wallet "github.com/boiseitguru/fcl-dev-wallet"
 	emulator "github.com/boiseitguru/flow-emulator"
 	"github.com/boiseitguru/flow-emulator/server"
@@ -71,6 +59,7 @@ type Config struct {
 	ScriptGasLimit         int           `default:"100000" flag:"script-gas-limit" info:"gas limit for scripts"`
 	WithOutContracts       bool          `default:"false" flag:"no-contracts" info:"don't deploy common contracts when emulator starts"`
 	NoWsServer             bool          `default:"false" flag:"no-ws-server" info:"don't deploy with websocket server"`
+	NoDevWallet            bool          `default:"false" flag:"no-dev-wallet" info:"don't deploy with dev wallet"`
 }
 
 var (
@@ -105,7 +94,7 @@ type serviceKeyFunc func(
 	hashAlgo crypto.HashAlgorithm,
 ) (crypto.PrivateKey, crypto.SignatureAlgorithm, crypto.HashAlgorithm)
 
-var cmd = &cobra.Command{
+var emulatorCmd = &cobra.Command{
 	Use:   "emulator",
 	Short: "Starts the EmeraldCity-CLI Flow emulator and connection to Emerald City Playground",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -320,17 +309,19 @@ func startEmulatorGroup() {
 
 	startEmulator(defaultServiceKey)
 
-	srv, err := wallet.NewHTTPServer(8701, &wallet.Config{
-		Address:    "0xf8d6e0586b0a20c7",
-		PrivateKey: conf.ServicePrivateKey,
-		PublicKey:  conf.ServicePublicKey,
-		AccessNode: "http://localhost:8080",
-	}, logger)
-	if err != nil {
-		panic(err)
-	}
+	if !conf.NoDevWallet {
+		srv, err := wallet.NewHTTPServer(8701, &wallet.Config{
+			Address:    "0xf8d6e0586b0a20c7",
+			PrivateKey: "68ee617d9bf67a4677af80aaca5a090fcda80ff2f4dbc340e0e36201fa1f1d8c",
+			PublicKey:  "9cd98d436d111aab0718ab008a466d636a22ac3679d335b77e33ef7c52d9c8ce47cf5ad71ba38cedd336402aa62d5986dc224311383383c09125ec0636c0b042",
+			AccessNode: "http://localhost:8080",
+		}, logger)
+		if err != nil {
+			panic(err)
+		}
 
-	emulatorGroup.Add(srv)
+		emulatorGroup.Add(srv)
+	}
 
 	o.Emit("emulator-group-started")
 
@@ -345,15 +336,15 @@ func eventschan(e interface{}) {
 		logger.Info("IDE Disconnected - Stopping Emulator")
 		emulatorGroup.Stop()
 	case "emulator-group-started":
-		// var overflowConfig *overflow.OverflowBuilder
+		var overflowConfig *overflow.OverflowBuilder
 
-		// if tempFlowConfig != "" {
-		// 	overflowConfig = overflow.NewOverflowEmulator().Config(tempFlowConfig)
-		// } else {
-		// 	overflowConfig = overflow.NewOverflowEmulator()
-		// }
+		if tempFlowConfig != "" {
+			overflowConfig = overflow.NewOverflowBuilder("emulator", false, 0).Config(tempFlowConfig)
+		} else {
+			overflowConfig = overflow.NewOverflowBuilder("emulator", false, 0)
+		}
 
-		// overflowConfig.Start()
+		overflowConfig.Start()
 	}
 }
 
@@ -369,11 +360,11 @@ func init() {
 
 	err := sconfig.New(&conf).
 		FromEnvironment(EnvPrefix).
-		BindFlags(cmd.PersistentFlags()).
+		BindFlags(emulatorCmd.PersistentFlags()).
 		Parse()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rootCmd.AddCommand(cmd)
+	rootCmd.AddCommand(emulatorCmd)
 }
