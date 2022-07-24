@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// listAccountsCmd represents the listAccounts command
-var listAccountsCmd = &cobra.Command{
-	Use:   "listAccounts",
+// getConfigCmd represents the getConfig command
+var getConfigCmd = &cobra.Command{
+	Use:   "getConfig",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -34,48 +34,25 @@ to quickly create a Cobra application.`,
 
 		o := overflowConfig.Start()
 
-		type FclAccount struct {
-			Type    string    `json:"type"`
-			Address string    `json:"address"`
-			KeyId   int       `json:"keyId"`
-			Label   string    `json:"label"`
-			Scopes  *[]string `json:"scopes"`
-		}
-
-		type fclAccounts []FclAccount
-		fclAccountList := []FclAccount{}
-
-		for _, account := range *o.State.Accounts() {
-			fclAccount := FclAccount{
-				Type:    "ACCOUNT",
-				Address: account.Address().String(),
-				KeyId:   0,
-				Label:   account.Name(),
-				Scopes:  new([]string),
-			}
-
-			fclAccountList = append(fclAccountList, fclAccount)
-		}
-
-		acctJSON, err := json.MarshalIndent(fclAccountList, "", " ")
+		configJSON, err := json.MarshalIndent(o.State.Config(), "", " ")
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 
-		fmt.Println(string(acctJSON))
+		fmt.Println(string(configJSON))
 	},
 }
 
 func init() {
-	emulatorCmd.AddCommand(listAccountsCmd)
+	emulatorCmd.AddCommand(getConfigCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// listAccountsCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// getConfigCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// listAccountsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// getConfigCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

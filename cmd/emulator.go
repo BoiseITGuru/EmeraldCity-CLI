@@ -11,14 +11,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/bjartek/overflow/overflow"
-	wallet "github.com/boiseitguru/fcl-dev-wallet"
-	emulator "github.com/boiseitguru/flow-emulator"
-	"github.com/boiseitguru/flow-emulator/server"
 	"github.com/onflow/cadence"
+	wallet "github.com/onflow/fcl-dev-wallet"
+	emulator "github.com/onflow/flow-emulator"
+	"github.com/onflow/flow-emulator/server"
 	sdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go/fvm"
@@ -108,14 +110,20 @@ var emulatorCmd = &cobra.Command{
 			wsGroup.Add(wsServer)
 
 			// start group and block until shutdown
-			err := wsGroup.Start()
-			if err != nil {
-				fmt.Printf("Shut down with error: %s\n", err.Error())
-				return
-			}
+			// err := wsGroup.Start()
+			// if err != nil {
+			// 	fmt.Printf("Shut down with error: %s\n", err.Error())
+			// 	return
+			// }
+			wsGroup.Start()
 		} else {
 			startEmulatorGroup()
 		}
+
+		done := make(chan os.Signal, 1)
+		signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+		fmt.Println("press ctrl+c to stop emulator...")
+		<-done // Will block here until user hits ctrl+c
 
 		fmt.Print("Shut down with no error\n")
 	},
@@ -222,6 +230,26 @@ func startEmulator(getServiceKey serviceKeyFunc) {
 	emu := server.NewEmulatorServer(logger, serverConf, emulatorGroup)
 
 	emu.Start()
+
+	if !conf.NoDevWallet {
+		srv, err := wallet.NewHTTPServer(8701, &wallet.Config{
+			Address:               "0xf8d6e0586b0a20c7",
+			PrivateKey:            servicePrivateKey.String(),
+			PublicKey:             servicePublicKey.String(),
+			AccountKeyID:          "1",
+			AccessNode:            "http://localhost:8888",
+			BaseURL:               "http://localhost:8701",
+			ContractFungibleToken: "0xee82856bf20e2aa6",
+			ContractFlowToken:     "0x0ae53cb6e3f42a79",
+			ContractFUSD:          "0xf8d6e0586b0a20c7",
+			ContractFCLCrypto:     "0xf8d6e0586b0a20c7",
+		}, logger)
+		if err != nil {
+			panic(err)
+		}
+
+		emulatorGroup.Add(srv)
+	}
 }
 
 func initLogger() *logrus.Logger {
@@ -308,20 +336,6 @@ func startEmulatorGroup() {
 	logger.Info("IDE Connected")
 
 	startEmulator(defaultServiceKey)
-
-	if !conf.NoDevWallet {
-		srv, err := wallet.NewHTTPServer(8701, &wallet.Config{
-			Address:    "0xf8d6e0586b0a20c7",
-			PrivateKey: "68ee617d9bf67a4677af80aaca5a090fcda80ff2f4dbc340e0e36201fa1f1d8c",
-			PublicKey:  "9cd98d436d111aab0718ab008a466d636a22ac3679d335b77e33ef7c52d9c8ce47cf5ad71ba38cedd336402aa62d5986dc224311383383c09125ec0636c0b042",
-			AccessNode: "http://localhost:8080",
-		}, logger)
-		if err != nil {
-			panic(err)
-		}
-
-		emulatorGroup.Add(srv)
-	}
 
 	o.Emit("emulator-group-started")
 
