@@ -7,7 +7,7 @@ package cmdcli
 import (
 	"os"
 
-	ui "EmeraldCity-CLI/ui/tools"
+	ui "EmeraldCity-CLI/ui/root"
 
 	"github.com/spf13/cobra"
 )
@@ -29,7 +29,7 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		ui.EmulatorUI()
+		ui.RootUI()
 	},
 }
 

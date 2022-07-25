@@ -9,7 +9,7 @@ import (
 	"github.com/knipferrc/teacup/image"
 )
 
-func EmulatorUI() {
+func RootUI() {
 	imageModel := image.New(true, true, lipgloss.AdaptiveColor{Light: "#000000", Dark: "#ffffff"})
 
 	initialModel := model{
