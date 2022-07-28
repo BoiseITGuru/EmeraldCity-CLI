@@ -3,6 +3,7 @@ module EmeraldCity-CLI
 go 1.18
 
 require (
+	github.com/76creates/stickers v0.0.0-20220613133526-beb5a915bb0e
 	github.com/charmbracelet/bubbles v0.13.0
 	github.com/charmbracelet/bubbletea v0.22.0
 	github.com/charmbracelet/lipgloss v0.5.0
@@ -11,7 +12,6 @@ require (
 )
 
 require (
-	github.com/76creates/stickers v0.0.0-20220613133526-beb5a915bb0e // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect

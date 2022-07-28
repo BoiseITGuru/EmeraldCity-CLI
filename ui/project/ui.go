@@ -49,7 +49,7 @@ func initialModel() model {
 }
 
 type model struct {
-	logo    image.Bubble
+	logo    reflow
 	flexBox *stickers.FlexBox
 }
 
